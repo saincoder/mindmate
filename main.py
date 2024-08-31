@@ -2,9 +2,14 @@ import streamlit as st
 import base64
 import uuid
 from groq import Groq
+from dotenv import load_dotenv
+import os
 
-# Hardcoded Groq API Key
-GROQ_API_KEY = "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"
+# Load environment variables from .env file
+load_dotenv()
+
+# Get the API key from environment variables
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # Function to generate recommendation based on mood and symptoms
 def generate_recommendation(mood, symptoms, behaviors):
@@ -152,13 +157,13 @@ def main():
         background-color: #1f1f1f;
         align-self: flex-end;
         justify-content: flex-end;
-        border-radius: 20px 20px 20px 20px;
+        border-radius: 20px 20px 0 20px;
     }
     .bot-message {
         background-color: #333;
         align-self: flex-start;
         justify-content: flex-start;
-        border-radius: 20px 20px 20px 20px;
+        border-radius: 20px 20px 20px 0;
     }
     .message-icon {
         margin-right: 10px; /* Place icon at the start */
