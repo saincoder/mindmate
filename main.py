@@ -18,13 +18,26 @@ def generate_message_id():
 def message_class(role):
     return "user-message" if role == "user" else "bot-message"
 
-# Function to generate a one-sentence recommendation
+# Function to generate a short recommendation using Groq API
 def generate_recommendation(mood, symptoms, behaviors):
-    if mood == 'sad' and 'headache' in symptoms and 'sleeping late' in behaviors:
-        return "Consider taking a short nap, staying hydrated, and reaching out to someone you trust for support."
-    # Additional conditions can be added here
-    else:
-        return "Keep monitoring your mood, symptoms, and behaviors, and consider seeking professional advice if needed."
+    client = Groq(api_key=GROQ_API_KEY)
+    
+    # Define the prompt to get a short recommendation
+    prompt = (
+        "You are a healthcare assistant. Based on the following details, provide a short recommendation (one or two sentences):\n\n"
+        f"Mood: {mood}\nSymptoms: {', '.join(symptoms)}\nBehaviors: {', '.join(behaviors)}\n\n"
+        "Recommendation:"
+    )
+    
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        model="llama-3.1-70b-versatile",
+    )
+
+    response_content = chat_completion.choices[0].message.content
+    return response_content.strip()
 
 # Function to chat with the bot using Groq API
 def chat_with_bot(user_message, mood, symptoms, behaviors):
@@ -35,7 +48,7 @@ def chat_with_bot(user_message, mood, symptoms, behaviors):
         "You are a healthcare assistance model designed to provide helpful and accurate health-related advice. "
         "Please keep responses concise, friendly, and no more than 300 words. "
         "If asked non-health-related questions, respond in a polite manner and remind the user that you are here to assist with health-related inquiries.\n\n"
-        f"Mood: {mood}\nSymptoms: {symptoms}\nBehaviors: {behaviors}\n\n"
+        f"Mood: {mood}\nSymptoms: {', '.join(symptoms)}\nBehaviors: {', '.join(behaviors)}\n\n"
         f"User: {user_message}\nHealthcare Assistant:"
     )
 
@@ -47,7 +60,7 @@ def chat_with_bot(user_message, mood, symptoms, behaviors):
     )
 
     response_content = chat_completion.choices[0].message.content
-    return response_content
+    return response_content.strip()
 
 def main():
     st.set_page_config(page_title="MindMate", page_icon="books")
@@ -66,11 +79,16 @@ def main():
     image_path = "images/MM22.jpg"  # Replace with your local image path
     st.sidebar.image(image_path, use_column_width=True, caption=" ")
 
+    # Define options for dropdown menus
+    mood_options = ['Happy', 'Sad', 'Anxious', 'Angry', 'Neutral']
+    symptom_options = ['Headache', 'Insomnia', 'Fatigue', 'Nausea', 'Dizziness']
+    behavior_options = ['Overeating', 'Sleeping Late', 'Irritability', 'Social Withdrawal']
+
     # Symptom Tracking Section
     st.header('Track Your Mood and Symptoms')
-    mood = st.text_input('Mood', placeholder="e.g., sad, anxious, happy")
-    symptoms = st.text_input('Symptoms', placeholder="e.g., headache, insomnia, fatigue")
-    behaviors = st.text_input('Behaviors', placeholder="e.g., overeating, sleeping late")
+    mood = st.selectbox('Mood', mood_options)
+    symptoms = st.multiselect('Symptoms', symptom_options)
+    behaviors = st.multiselect('Behaviors', behavior_options)
 
     if st.button('Recommend'):
         recommendation = generate_recommendation(mood, symptoms, behaviors)
@@ -78,7 +96,7 @@ def main():
 
     # Chatbot Section
     st.header('Chat with MindMate')
-    user_message = st.text_area('Ask MindMate a question about mental health', placeholder="e.g., How to deal with stress?")
+    user_message = st.text_input('Ask MindMate a question about mental health', placeholder="e.g., How to deal with stress?")
     
     if st.button('Send'):
         bot_response = chat_with_bot(user_message, mood, symptoms, behaviors)
@@ -143,13 +161,13 @@ def main():
         background-color: #1f1f1f;
         align-self: flex-end;
         justify-content: flex-end;
-        border-radius: 20px 20px 0 20px;
+        border-radius: 20px 20px 20px 20px;
     }
     .bot-message {
         background-color: #333;
         align-self: flex-start;
         justify-content: flex-start;
-        border-radius: 20px 20px 20px 0;
+        border-radius: 20px 20px 20px 20px;
     }
     .message-icon {
         margin-right: 10px; /* Place icon at the start */
