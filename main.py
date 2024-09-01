@@ -1,5 +1,4 @@
 import streamlit as st
-import base64
 import uuid
 from groq import Groq
 from dotenv import load_dotenv
@@ -11,50 +10,6 @@ load_dotenv()
 # Get the API key from environment variables
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# Function to generate recommendation based on mood and symptoms
-def generate_recommendation(mood, symptoms, behaviors):
-    client = Groq(api_key=GROQ_API_KEY)
-    if mood == 'sad':
-        return 'Consider talking to a mental health professional or practicing mindfulness techniques such as meditation.'
-    elif 'anxious' in mood:
-        return 'Try breathing exercises or consider reaching out to a counselor to discuss your anxiety.'
-    elif 'headache' in symptoms:
-        return 'Ensure you are hydrated and have enough rest. If it persists, consult a doctor.'
-    elif 'insomnia' in symptoms:
-        return 'Establish a regular sleep schedule and avoid screen time before bed. If it continues, see a healthcare provider.'
-    else:
-        return 'Keep tracking your symptoms and consider speaking with a professional if needed.'
-
-# Function to chat with bot using Groq API
-def chat_with_bot(user_message):
-    client = Groq(api_key=GROQ_API_KEY)
-    user_message_lower = user_message.lower()
-
-    # Greetings response
-    if user_message_lower in ["hi", "hello", "hey"]:
-        return "Hi! How can I help you? I'm your assistant to give you healthy tips."
-
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {"role": "user", "content": user_message}
-        ],
-        model="llama-3.1-70b-versatile",
-    )
-
-    response_content = chat_completion.choices[0].message.content
-
-    # Check if the question is unrelated to mental health
-    if not is_health_related(user_message_lower):
-        return "I'm your health assistant. Please ask me something related to health, and I'll do my best to help!"
-    
-    # Return the chatbot's natural language response if it's health-related
-    return response_content
-
-# Helper function to check if the user message is health-related
-def is_health_related(user_message):
-    health_keywords = ["stress", "anxiety", "depression", "mental health", "cbt", "dbt", "symptoms", "headache", "insomnia", "mood", "therapy", "counseling", "meditation", "well-being", "emotions"]
-    return any(keyword in user_message for keyword in health_keywords)
-
 # Function to generate a unique ID for each message
 def generate_message_id():
     return str(uuid.uuid4())
@@ -62,6 +17,37 @@ def generate_message_id():
 # Function to generate a unique CSS class for message alignment
 def message_class(role):
     return "user-message" if role == "user" else "bot-message"
+
+# Function to generate a one-sentence recommendation
+def generate_recommendation(mood, symptoms, behaviors):
+    if mood == 'sad' and 'headache' in symptoms and 'sleeping late' in behaviors:
+        return "Consider taking a short nap, staying hydrated, and reaching out to someone you trust for support."
+    # Additional conditions can be added here
+    else:
+        return "Keep monitoring your mood, symptoms, and behaviors, and consider seeking professional advice if needed."
+
+# Function to chat with the bot using Groq API
+def chat_with_bot(user_message, mood, symptoms, behaviors):
+    client = Groq(api_key=GROQ_API_KEY)
+
+    # Define the character of the LLM as a healthcare assistant
+    prompt = (
+        "You are a healthcare assistance model designed to provide helpful and accurate health-related advice. "
+        "Please keep responses concise, friendly, and no more than 300 words. "
+        "If asked non-health-related questions, respond in a polite manner and remind the user that you are here to assist with health-related inquiries.\n\n"
+        f"Mood: {mood}\nSymptoms: {symptoms}\nBehaviors: {behaviors}\n\n"
+        f"User: {user_message}\nHealthcare Assistant:"
+    )
+
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        model="llama-3.1-70b-versatile",
+    )
+
+    response_content = chat_completion.choices[0].message.content
+    return response_content
 
 def main():
     st.set_page_config(page_title="MindMate", page_icon="books")
@@ -86,7 +72,7 @@ def main():
     symptoms = st.text_input('Symptoms', placeholder="e.g., headache, insomnia, fatigue")
     behaviors = st.text_input('Behaviors', placeholder="e.g., overeating, sleeping late")
 
-    if st.button('Get Recommendation'):
+    if st.button('Recommend'):
         recommendation = generate_recommendation(mood, symptoms, behaviors)
         st.write('Recommendation:', recommendation)
 
@@ -95,7 +81,7 @@ def main():
     user_message = st.text_area('Ask MindMate a question about mental health', placeholder="e.g., How to deal with stress?")
     
     if st.button('Send'):
-        bot_response = chat_with_bot(user_message)
+        bot_response = chat_with_bot(user_message, mood, symptoms, behaviors)
         
         # Add messages to session state
         if 'messages' not in st.session_state:
